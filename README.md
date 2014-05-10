@@ -4,12 +4,13 @@ A Clojure library designed to deal with routes as data.
 
 Routes are just clojure data structure, which means:
 
+* Simple
 * Composable
-* Transformabe
-* Can be used as meta information
+* Transformable
+* Controllable
 
 Dispatching is just search in tree
-wich allow you any customization and full control.
+which allow you any customization and full control.
 
 ### Basic API
 
@@ -19,7 +20,7 @@ Represent url pattern as vector:
 "/users/1/profile/" => ["users" :id "profile"]
 ```
 
-Represent routes as tree of clojure data structures
+Routes as tree of clojure data structures:
 
 ```clojure
 (def routes
@@ -31,7 +32,7 @@ Represent routes as tree of clojure data structures
 
 ```
 
-Dispatching becomes just search in tree:
+Dispatching:
 
 ```clojure
 (defn handler [{meth :request-method uri :uri :as req}]
@@ -55,7 +56,7 @@ lein with-profile +dev repl
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014 niquola
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
