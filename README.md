@@ -27,12 +27,21 @@ Routes as tree of clojure data structures:
   {:get    {:fn #'dashboard }
    "users" {:get    {:fn #'list-users }
             "new"   {:get {:fn #'new-user-form }}
-            [:name] {:get {:fn #'show-user }
-                     "profile" {:get {:fn #'user-profile }}}}} )
+            [:id] {:get {:fn #'show-user }
+                     "activate" {:post {:fn #'activate-user }}}}} )
 
 ```
 
 Dispatching:
+
+```clojure
+
+(match-route [:post "/users/5/activate"] routes)
+ ;;=> {:fn #'activate-user :parents [...] :params {:i 5}} 
+```
+
+
+Example:
 
 ```clojure
 (defn handler [{meth :request-method uri :uri :as req}]
