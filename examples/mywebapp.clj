@@ -27,12 +27,7 @@
 
 (url "a" "b" "c" "d")
 
-(def routes
-  {:get {:fn #'dashboard }
-   "users" {:get    {:fn #'list-users }
-            "new"   {:get {:fn #'new-user-form }}
-            [:name] {:get {:fn #'show-user }
-                     "profile" {:get {:fn #'user-profile }}}}} )
+(declare routes)
 
 ;; controllers
 (defn dashboard [req]
@@ -45,6 +40,7 @@
      [:code (str routes)]]))
 
 (def users (atom {"root" {:name "Root user"}}))
+
 (defn list-users [req]
   (render
     [:h1 "Users"]
@@ -75,6 +71,12 @@
       [:h1 (str "User Profile: " (:name usr))]
       [:a {:href (url "users" nm)} "Back to user"])))
 
+(def routes
+  {:get {:fn #'dashboard }
+   "users" {:get    {:fn #'list-users }
+            "new"   {:get {:fn #'new-user-form }}
+            [:name] {:get {:fn #'show-user }
+                     "profile" {:get {:fn #'user-profile }}}}} )
 
 (defn handler [{meth :request-method uri :uri :as req}]
   (if-let [h (rm/match [meth uri] routes)]
