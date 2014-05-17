@@ -27,6 +27,8 @@
 
 (url "a" "b" "c" "d")
 
+(declare routes)
+
 ;; controllers
 (defn dashboard [req]
   (render
@@ -38,6 +40,7 @@
      [:code (str routes)]]))
 
 (def users (atom {"root" {:name "Root user"}}))
+
 (defn list-users [req]
   (render
     [:h1 "Users"]
