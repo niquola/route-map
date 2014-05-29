@@ -56,9 +56,6 @@
             [:user-id] {GET       {:.desc "Show user"}
                         POST      {:.desc "Update user"}
                         "activate" {POST {:.desc "Activate"}}}}})
-;; helper
-#_(rm/path (url :.. "users" :user-id "activate" {:user-id 1})
-           current-route routes)
 
 (defn- get-desc [path]
   (:.desc
@@ -69,11 +66,16 @@
   (:params
     (rm/match path routes)))
 
+(rm/match [:get "users/1"] routes)
+
 (time
   (doseq [x (take 10000 (range))]
     (rm/match [:post (str "/users/" x "/activate")] routes)))
 
 (deftest match-routes
+  (is (= (rm/match [:post "/"] routes)
+         nil))
+
   (is (= (rm/match [:get "some/unexistiong/route"] routes)
          nil))
 
@@ -91,5 +93,15 @@
   (is (= (mapv :.filters (:parents (rm/match [:get "posts/1"] routes)))
          [nil [:user-required] nil]))
   )
+
+(def routes-2
+  {"metadata" {:GET {:fn '=metadata}}
+   [:type] {:POST {:fn '=create}
+            [:id] {:GET   {:fn '=read}
+                   :DELETE  {:fn '=delete} }}})
+
+(deftest empty-root-test
+  (is (= (rm/match [:get "/"] routes-2)
+         nil)))
 
 (run-tests)

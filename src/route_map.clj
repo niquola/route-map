@@ -16,9 +16,9 @@
 
 (defn match [[meth url] routes]
   (let [meth  (-> meth name .toUpperCase keyword)
-        pth   (conj (pathify url) meth)
+        pth   (pathify url)
         match (->Match [] {} nil)
-        matches (match-recur [] match pth routes)]
+        matches (match-recur [] match meth pth routes)]
     (if (> (count matches) 1)
       (throw (Exception. "You routes is ubiquotus" (pr-str matches)))
       (first matches))))
@@ -28,18 +28,22 @@
 (defn match-recur [acc
                    {ps :parents
                     pr :params :as res}
+                   meth
                    [it & pth] node]
-  (if-not it
-    (conj acc (assoc res :match node))
-    (if-let [next-node (get node it)]
-      (match-recur acc
-                   (update-in res [:parents] conj node)
-                   pth next-node)
-      (reduce (fn [acc [k next-node]]
-                (if (param? k)
-                  (match-recur acc
-                               (merge res {:parents (conj ps node)
-                                           :params  (assoc pr (first k) it)})
-                               pth next-node)
-                  acc))
-              acc node))))
+  (let [new-parents (conj ps node)]
+    (cond
+      (and (nil? it) (contains? node meth)) (conj acc (merge res {:match (meth node)
+                            :parents new-parents}))
+      (contains? node it) (match-recur
+                            acc
+                            (assoc res :parents new-parents)
+                            meth pth (get node it))
+      (not (nil? it)) (reduce (fn [acc [k next-node]]
+                                (if (param? k)
+                                  (match-recur acc
+                                               (merge res {:parents new-parents
+                                                           :params (assoc pr (first k) it)})
+                                               meth pth next-node)
+                                  acc))
+                              acc node)
+      :else acc)))
