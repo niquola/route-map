@@ -29,8 +29,6 @@
           :DELETE {:fn 'delete}} (or chld {})) }})
 
 
-(rm/match [:get "/users/1/posts/2/comments/3"] routes-2)
-
 (def meta-routes
   {:GET ^{:fls [1]} 'root })
 
