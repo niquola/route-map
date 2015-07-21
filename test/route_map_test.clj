@@ -104,4 +104,19 @@
   (is (= (rm/match [:get "/"] routes-2)
          nil)))
 
-(run-tests)
+
+(defn guard [x]
+  (= "special" (get-in x [:param :params])))
+
+(def routes-specific
+  {[:param] {"action" {:GET {:fn 'action }}
+             :GET {:fn 'special :guard guard}
+             }})
+
+(defn match-specific [meth path]
+  (get-in (rm/match [meth path] routes-specific) [:match :fn]))
+
+(deftest specila-test
+  (is (= (match-specific :get "/special") 'special))
+  (is (= (match-specific :get "/special/action") 'action))
+  )
