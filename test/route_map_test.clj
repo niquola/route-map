@@ -48,6 +48,7 @@
                         "comments" {GET  {:.desc "comments"}
                                     [:comment-id] {GET {:.desc "show comment"}
                                                    PUT {:.desc "update comment"}}}}}
+   "sites" {[:site]  {[:path*] {GET {:.desc "Glob files"}}}}
    "users" {:.roles   #{:admin}
             GET       {:.desc "List users"}
             POST      {:.desc "Create user" :.roles #{:admin}}
@@ -69,7 +70,7 @@
 (rm/match [:get "users/1"] routes)
 
 (time
-  (doseq [x (take 10000 (range))]
+  (doseq [x (take 100000 (range))]
     (rm/match [:post (str "/users/" x "/activate")] routes)))
 
 (deftest match-routes
@@ -92,6 +93,9 @@
        4))
   (is (= (mapv :.filters (:parents (rm/match [:get "posts/1"] routes)))
          [nil [:user-required] nil]))
+
+  (is (= (get-params [:get "sites/blog/imgs/logo.png"]) {:site "blog"
+                                                         :path* ["imgs" "logo.png"]}))
   )
 
 (def routes-2
@@ -99,6 +103,7 @@
    [:type] {:POST {:fn '=create}
             [:id] {:GET   {:fn '=read}
                    :DELETE  {:fn '=delete} }}})
+
 
 (deftest empty-root-test
   (is (= (rm/match [:get "/"] routes-2)
@@ -118,5 +123,4 @@
 
 (deftest specila-test
   (is (= (match-specific :get "/special") 'special))
-  (is (= (match-specific :get "/special/action") 'action))
-  )
+  (is (= (match-specific :get "/special/action") 'action)))
