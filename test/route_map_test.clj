@@ -36,6 +36,16 @@
 (def POST :POST)
 (def PUT :PUT)
 
+(def user-routes
+  {:.roles   #{:admin}
+   GET       {:.desc "List users"}
+   POST      {:.desc "Create user" :.roles #{:admin}}
+   "active"   {GET {:.desc "Filtering users"}}
+
+   [:user-id] {GET       {:.desc "Show user"}
+               POST      {:.desc "Update user"}
+               "activate" {POST {:.desc "Activate"}}}})
+
 (def routes
   {GET    {:.desc "Root"}
    "posts" {:.roles   #{:author :admin}
@@ -49,14 +59,7 @@
                                     [:comment-id] {GET {:.desc "show comment"}
                                                    PUT {:.desc "update comment"}}}}}
    "sites" {[:site]  {[:path*] {GET {:.desc "Glob files"}}}}
-   "users" {:.roles   #{:admin}
-            GET       {:.desc "List users"}
-            POST      {:.desc "Create user" :.roles #{:admin}}
-            "active"   {GET {:.desc "Filtering users"}}
-
-            [:user-id] {GET       {:.desc "Show user"}
-                        POST      {:.desc "Update user"}
-                        "activate" {POST {:.desc "Activate"}}}}})
+   "users" #'user-routes})
 
 (defn- get-desc [path]
   (:.desc
