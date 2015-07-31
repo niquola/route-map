@@ -118,10 +118,14 @@ For example dynamicaly build middlewares stack for specific paths:
 
 (defn app [{meth :request-method uri :uri params :params :as req}]
   (let [res (rm/match [meth uri] routes)
+        ;; collect all :interceptors keys
         interceptors (mapcat :interceptors (:parents res))
         handler (:match res)
+        ;; add route params to params
         req (update-in req [:params] merge (:params res))
+        ;; build stack
         stack ((apply comp interceptors) handler)]
+  ;; apply
   (stack req)))
 ```
 
@@ -135,11 +139,14 @@ Integrate with Prismatic Schema for input validation:
 ;; somewhere in dispatcher
 
 (let [body (:body request)
+      ;; destruct match
       [schema handler] route-match]
   (if (s/check schema body)
       (handler req)
       ....))
 ```
+
+and generate swagger specification from routes.
 
 ## License
 
