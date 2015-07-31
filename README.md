@@ -91,6 +91,56 @@ Library just match routes and dispatch execution is up to you:
 
 [See example app](blob/master/examples/mywebapp.clj)
 
+## Tips
+
+`match` could be used for links validation in app
+
+```clojure
+(defn url [path]
+  (if (match path)
+    path
+    (throw Exception. (str "url " path " does not match any paths"))))
+```
+
+One can put additional metadata into routes hash-map and
+interpret it in some useful way.
+For example dynamicaly build middlewares stack for specific paths:
+
+```clojure
+(def routes
+  {:interceptors [ensure-admin]
+   :GET  list
+   :POST create
+   [:uid] {:interceptors [ensure-user]
+           :GET show
+           :PUT udpate
+           :DELETE destroy}})
+
+(defn app [{meth :request-method uri :uri params :params :as req}]
+  (let [res (rm/match [meth uri] routes)
+        interceptors (mapcat :interceptors (:parents res))
+        handler (:match res)
+        req (update-in req [:params] merge (:params res))
+        stack ((apply comp interceptors) handler)]
+  (stack req)))
+```
+
+Integrate with Prismatic Schema for input validation:
+
+```clojure
+{"users" {:POST [UserSchema create-user]
+          [:id] {:PUT [UserSchema create-user]
+                 ....}}}
+
+;; somewhere in dispatcher
+
+(let [body (:body request)
+      [schema handler] route-match]
+  (if (s/check schema body)
+      (handler req)
+      ....))
+```
+
 ## License
 
 Copyright © 2014 niquola
