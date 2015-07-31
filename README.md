@@ -7,8 +7,8 @@ Routes are represented as hierarchiecal hash-map:
 Keys in map could be:
  * methods :GET, :POST, :PUT, :DELETE, :OPTION
  * hardcoded parts of path, for example "users"
- * vector with one keyword - encode name of parameter (there are could be only one parameter key per map)
- * any not listed key, which will be present in result of looking up route
+ * vector with one keyword - parameter key - match part of path as parameter (there are could be only one parameter key per map)
+ * any not listed keys, which will be present in result of looking up route
  * leafs could be anything
 
 ```clojure
@@ -36,7 +36,7 @@ To match route you call:
 Request uri and method are transformed into vector splited by "/" - 
 `GET /users/1 => ["users" "1" :GET]`, which is treated as path in route tree.
 
-If path is found match return hash-map:
+If path is found `match` returns hash-map:
 
 ```
 {:match node ;; matched node
@@ -44,7 +44,9 @@ If path is found match return hash-map:
  :params params ;; params extracted while matching [:param-name] keys}
 ```
 
-Library do not do dispatch for you, you have to implement it by them self:
+otherwise nil.
+
+Library just match routes and dispatch execution is up to you:
 
 ```
 (ns mywebapp
