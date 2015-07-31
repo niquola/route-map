@@ -1,67 +1,81 @@
 # route-map
 
-A Clojure library designed to deal with routes as data.
+Half-page clojure library for routing (dispatching) in web applications.
 
-Routes are just clojure data structure, which means:
+Routes are represented as hierarchiecal hash-map:
 
-* Simple
-* Composable
-* Transformable
-* Controllable
-
-Dispatching is just search in tree
-which allow you any customization and full control.
-
-### Basic API
-
-Represent url pattern as vector:
-
-```clojure
-"/users/1/profile/" => ["users" :id "profile"]
-```
-
-Routes as tree of clojure data structures:
+Keys in map could be:
+ * methods :GET, :POST, :PUT, :DELETE, :OPTION
+ * hardcoded parts of path, for example "users"
+ * vector with one keyword - encode name of parameter (there are could be only one parameter key per map)
+ * any not listed key, which will be present in result of looking up route
+ * leafs could be anything
 
 ```clojure
 (def routes
-  {:get    {:fn #'dashboard }
-   "users" {:get    {:fn #'list-users }
-            "new"   {:get {:fn #'new-user-form }}
-            [:id] {:get {:fn #'show-user }
-                     "activate" {:post {:fn #'activate-user }}}}} )
+  {:GET    'root
+   "users" {:GET  'list
+            :POST 'create
+            [:uid] {:GET 'show
+                   :PUT 'udpate
+                   :DELETE 'destroy}}})
+
+(route-map/match [:get "/unexisting"] routes) ;;=> nil
+(route-map/match [:get "/users/1"] routes)
+;;=> {:match 'show
+;;    :parents [all nodes in path to match]
+;;    :params {:uid "1"}}
 
 ```
 
-Dispatching:
 
-```clojure
+To match route you call:
 
-(match-route [:post "/users/5/activate"] routes)
- ;;=> {:fn #'activate-user :parents [...] :params {:i 5}} 
-```
+`(route-map/match [requrest-method uri] routes)` 
 
+Request uri and method are transformed into vector splited by "/" - 
+`GET /users/1 => ["users" "1" :GET]`, which is treated as path in route tree.
 
-Example:
-
-```clojure
-(defn handler [{meth :request-method uri :uri :as req}]
-  (if-let [h (route-map/match [meth uri] routes)]
-    ((:fn h) (assoc req :params (:params h)))
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (str "No routes for " uri "\n in " (pr-str routes) "\n " (pr-str req))}))
+If path is found match return hash-map:
 
 ```
-
-For more info see example/mywebapp.clj
-
-To run example:
-
-```bash
-lein with-profile +dev repl
-(use 'mywebapp)
-(start)
+{:match node ;; matched node
+ :parents parents ;; all nodes in path to matched
+ :params params ;; params extracted while matching [:param-name] keys}
 ```
+
+Library do not do dispatch for you, you have to implement it by them self:
+
+```
+(ns mywebapp
+  (:require
+    [route-map :as rm]
+    [ring.adapter.jetty :as jetty]))
+
+(defn list [req]...)
+(defn create [req]...)
+(defn show [req]...)
+(defn update [req]...)
+(defn delete [req]...)
+
+(def routes
+  {:interceptors ['ensure-admin]
+   :GET  list
+   :POST create
+   [:uid] {:interceptors ['ensure-user]
+           :GET show
+           :PUT udpate
+           :DELETE destroy}})
+
+(defn app [{meth :request-method uri :uri :as req}]
+  (if-let [res (rm/match [meth uri] routes)]
+    (apply (:match res)  (update-in req [:params] merge (:params req))
+    {:status 404 :body "Not found"})))
+
+(jetty/run-jetty #'app {:port 3003 :join? false}))
+```
+
+[See example app](blob/master/examples/mywebapp.clj)
 
 ## License
 

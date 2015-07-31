@@ -41,3 +41,16 @@
   (-match routes
           (conj (pathify url)
                 (-> meth name .toUpperCase keyword))))
+
+(defn wrap-route-map [h routes]
+  "search appropriate route in routes
+   and put match under :route-match
+   route match contains
+     :parents - parent nodes to matched node
+     :params - params collected from route
+     :match - matched node in route map
+  "
+  (fn [{meth :request-method uri :uri :as req}]
+    (if-let [match (match [meth uri] routes)]
+      (h (assoc req :route-match match))
+      (h req))))
