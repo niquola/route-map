@@ -1,5 +1,7 @@
 # route-map
 
+[![Clojars Project](http://clojars.org/route-map/latest-version.svg)](http://clojars.org/route-map)
+
 Half-page clojure library for routing (dispatching) in web applications.
 
 Routes are represented as hierarchiecal hash-map:
@@ -39,9 +41,9 @@ Keys in map could be:
 
 To match route you call:
 
-`(route-map/match [requrest-method uri] routes)` 
+`(route-map/match [requrest-method uri] routes)`
 
-Request uri and method are transformed into vector splited by "/" - 
+Request uri and method are transformed into vector splited by "/" -
 `GET /users/1 => ["users" "1" :GET]`, which is treated as path in route tree.
 
 If path is found `match` returns hash-map:
