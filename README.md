@@ -7,13 +7,16 @@ Routes are represented as hierarchiecal hash-map:
 Keys in map could be:
  * methods :GET, :POST, :PUT, :DELETE, :OPTION
  * hardcoded parts of path, for example "users"
- * vector with one keyword - parameter key - match part of path as parameter (there are could be only one parameter key per map)
+ * vector with one keyword - parameter key - match part of path as parameter
+   if key name ends with `*` (like :path*), it will match the rest of path
+   There are could be only one parameter key per map.
  * any not listed keys, which will be present in result of looking up route
  * leafs could be anything
 
 ```clojure
 (def routes
   {:GET    'root
+   "files" {:path* {:GET 'file}}
    "users" {:GET  'list
             :POST 'create
             [:uid] {:GET 'show
@@ -25,6 +28,11 @@ Keys in map could be:
 ;;=> {:match 'show
 ;;    :parents [all nodes in path to match]
 ;;    :params {:uid "1"}}
+
+(route-map/match [:get "/files/assets/img/icon.png"] routes)
+;;=> {:match 'file
+;;    :params {:path* ["assets" "img" "icon.png"]}
+;;    :parents ...}
 
 ```
 
