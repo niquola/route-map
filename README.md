@@ -2,6 +2,8 @@
 
 [![Clojars Project](http://clojars.org/route-map/latest-version.svg)](http://clojars.org/route-map)
 
+[![Build Status](https://travis-ci.org/niquola/route-map.svg)](https://travis-ci.org/niquola/route-map)
+
 Half-page clojure library for routing (dispatching) in web applications.
 
 Routes are represented as hierarchiecal hash-map:
