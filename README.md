@@ -89,7 +89,7 @@ Library just match routes and dispatch execution is up to you:
 (jetty/run-jetty #'app {:port 3003 :join? false}))
 ```
 
-[See example app](blob/master/examples/mywebapp.clj)
+[See example app](examples/mywebapp.clj)
 
 ## Tips
 
