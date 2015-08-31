@@ -1,6 +1,6 @@
-(ns route-map-test
+(ns route-map.core-test
   (:require [clojure.test :refer :all]
-            [route-map :as rm]))
+            [route-map.core :as rm]))
 ;; TODO
 ;; * url helper
 ;; * nested params (full naming or fallback to id)
@@ -118,8 +118,7 @@
 
 (def routes-specific
   {[:param] {"action" {:GET {:fn 'action }}
-             :GET {:fn 'special :guard guard}
-             }})
+             :GET {:fn 'special :guard guard}}})
 
 (defn match-specific [meth path]
   (get-in (rm/match [meth path] routes-specific) [:match :fn]))

@@ -1,6 +1,5 @@
-(ns route-map
-  (:require [clojure.string :as str]
-            [clojure.zip :as zip]))
+(ns route-map.core
+  (:require [clojure.string :as str]))
 
 (defn to-url
   "build url from route and params"
@@ -11,7 +10,10 @@
 
 (defrecord Match [parents params match])
 
-(defn is-glob? [k] (.endsWith (name k) "*"))
+#?(:clj (defn is-glob? [k] (.endsWith (name k) "*")))
+#?(:cljs (defn is-glob? [k] (let [s (name k)]
+                              (= (.indexOf s "*")
+                                 (- (.length s) 1)))))
 
 (defn- get-param [node]
   (first (filter (fn [[k v]] (vector? k)) node)))
@@ -22,7 +24,7 @@
          [x & rpth :as pth] pth
          node rs]
     ;; support var as node
-    (let [node (if (var? node) (var-get node) node)]
+    (let [node (if (var? node) (deref node) node)]
       (if (empty? pth)
         ;; path end  find or not
         (if node (assoc acc :match node) nil)
@@ -40,7 +42,7 @@
 (defn match [[meth url] routes]
   (-match routes
           (conj (pathify url)
-                (-> meth name .toUpperCase keyword))))
+                (-> meth name str/upper-case keyword))))
 
 (defn wrap-route-map [h routes]
   "search appropriate route in routes
