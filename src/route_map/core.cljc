@@ -24,20 +24,19 @@
          [x & rpth :as pth] pth
          node rs]
     ;; support var as node
-    (let [node (if (var? node) (deref node) node)]
-      (if (empty? pth)
-        ;; path end  find or not
-        (if node (assoc acc :match node) nil)
-        ;; attempt to get by get
-        (if-let [nnode (get node x)] 
-          (recur (update-in acc [:parents] conj node) rpth nnode)
-          ;; looking for params
-          (when-let [[[k] nnode] (and (not (keyword? x)) (get-param node))]
-            (let [acc (update-in acc [:parents] conj node)]
-              ;; if glob then eat the path
-              (if (is-glob? k)
-                (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] nnode)
-                (recur (update-in acc [:params] assoc k x) rpth nnode)))))))))
+    (if (empty? pth)
+      ;; path end  find or not
+      (if node (assoc acc :match node) nil)
+      ;; attempt to get by get
+      (if-let [nnode (get (if (var? node) (deref node) node) x)] 
+        (recur (update-in acc [:parents] conj node) rpth nnode)
+        ;; looking for params
+        (when-let [[[k] nnode] (and (not (keyword? x)) (get-param node))]
+          (let [acc (update-in acc [:parents] conj node)]
+            ;; if glob then eat the path
+            (if (is-glob? k)
+              (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] nnode)
+              (recur (update-in acc [:params] assoc k x) rpth nnode))))))))
 
 (defn match [[meth url] routes]
   (-match routes
