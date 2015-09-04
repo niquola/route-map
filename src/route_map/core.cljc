@@ -13,7 +13,7 @@
 #?(:clj (defn is-glob? [k] (.endsWith (name k) "*")))
 #?(:cljs (defn is-glob? [k] (let [s (name k)]
                               (= (.indexOf s "*")
-                                 (- (.length s) 1)))))
+                                 (- (.-length s) 1)))))
 
 (defn- get-param [node]
   (first (filter (fn [[k v]] (vector? k)) node)))
