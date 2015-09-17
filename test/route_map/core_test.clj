@@ -72,7 +72,7 @@
 
 (rm/match [:get "users/1"] routes)
 
-(time
+#_(time
   (doseq [x (take 100000 (range))]
     (rm/match [:post (str "/users/" x "/activate")] routes)))
 
@@ -126,3 +126,19 @@
 (deftest specila-test
   (is (= (match-specific :get "/special") 'special))
   (is (= (match-specific :get "/special/action") 'action)))
+
+(def frontend-routes
+  {"admin" {"users" {:. 'users-list-view
+                     [:id] 'user-view}
+            "groups" 'groups-list-view}})
+
+(defn f-match [url]
+  (:match (rm/match url frontend-routes)))
+
+
+(deftest frontend-routes-test
+  (is (= 'users-list-view (f-match "/admin/users")))
+  (is (= 'user-view (f-match "/admin/users/5")))
+  (is (= 'groups-list-view (f-match "/admin/groups")))
+  (is (= {:id "5"} (:params (rm/match "/admin/users/5" frontend-routes)))))
+

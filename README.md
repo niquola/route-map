@@ -91,6 +91,22 @@ Library just match routes and dispatch execution is up to you:
 
 [See example app](examples/mywebapp.clj)
 
+## ClojureScript
+
+In ClojureScript scenario you do not have methods
+and to handle nested routes in the middle use magic keyword `:.`. 
+
+```clojure
+(def routes
+  {"admin" {"users" {:. 'users-list-view
+                     [:id] 'user-view}
+            "groups" 'groups-list-view}})
+
+(match "/admin/users" routes)   ;;=> {:match 'users-list-view ...}
+(match "/admin/users/5" routes) ;;=> {:match 'users-list-view :params {:id "5"} ...}
+(match "/admin/groups" routes)  ;;=> {:match 'groups-list-view ...}
+```
+
 ## Tips
 
 `match` could be used for links validation in app
