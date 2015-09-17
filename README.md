@@ -94,7 +94,7 @@ Library just match routes and dispatch execution is up to you:
 ## ClojureScript
 
 In ClojureScript scenario you do not have methods
-and to handle nested routes in the middle use magic keyword `:.`. 
+and to handle nested routes in the middle use magic keyword ```:.```
 
 ```clojure
 (def routes
@@ -102,9 +102,14 @@ and to handle nested routes in the middle use magic keyword `:.`.
                      [:id] 'user-view}
             "groups" 'groups-list-view}})
 
-(match "/admin/users" routes)   ;;=> {:match 'users-list-view ...}
-(match "/admin/users/5" routes) ;;=> {:match 'users-list-view :params {:id "5"} ...}
-(match "/admin/groups" routes)  ;;=> {:match 'groups-list-view ...}
+(match "/admin/users" routes)
+;;=> {:match 'users-list-view ...}
+
+(match "/admin/users/5" routes)
+;;=> {:match 'users-list-view :params {:id "5"} ...}
+
+(match "/admin/groups" routes)
+;;=> {:match 'groups-list-view ...}
 ```
 
 ## Tips
