@@ -63,7 +63,7 @@ Library just match routes and dispatch execution is up to you:
 ```clojure
 (ns mywebapp
   (:require
-    [route-map :as rm]
+    [route-map.core :as rm]
     [ring.adapter.jetty :as jetty]))
 
 (defn list [req]...)
