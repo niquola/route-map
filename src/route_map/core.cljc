@@ -16,7 +16,6 @@
                                  (- (.-length s) 1)))))
 
 (defn- get-param [node]
-  (assert (map? node) "should be map")
   (first (filter (fn [[k v]] (vector? k)) node)))
 
 ;; TODO: add rs validation
@@ -41,6 +40,7 @@
          (recur (update-in acc [:parents] conj node) rpth nnode)
          ;; looking for params
          (when-let [[[k] nnode] (and (not (keyword? x))
+                                     (map? node)
                                      (get-param node))]
            (let [acc (update-in acc [:parents] conj node)]
              ;; if glob then eat the path

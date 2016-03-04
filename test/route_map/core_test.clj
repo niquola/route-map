@@ -142,3 +142,6 @@
   (is (= 'groups-list-view (f-match "/admin/groups")))
   (is (= {:id "5"} (:params (rm/match "/admin/users/5" frontend-routes)))))
 
+(deftest not-map-test
+  (is (nil? (rm/match "/test/unexisting" {"test" :test}))))
+
