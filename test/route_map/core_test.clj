@@ -47,8 +47,8 @@
                "activate" {POST {:.desc "Activate"}}}})
 
 (def routes
-  {GET    {:.name :root
-           :.desc "Root"}
+  {:.name :root
+   GET    {:.desc "Root"}
    "posts" {:.name :posts
             :.roles   #{:author :admin}
             :.filters [:user-required]
