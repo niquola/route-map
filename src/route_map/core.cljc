@@ -68,3 +68,46 @@
     (if-let [match (match [meth uri] routes)]
       (h (assoc req :route-match match))
       (h req))))
+
+(defn first-not-nil [coll]
+  (let [not-nils (filter #(not= nil %) coll)
+        all-nils (nil? not-nils)]
+    (if all-nils 
+      nil
+      (first not-nils))))
+
+(defn get-static-paths [routes]
+  (map #(first %)
+       (filter #(let [[k _] %]
+                  (string? k))
+               routes)))
+
+(defn get-ways [routes]
+  (let [params (first (get-param routes))
+        static-paths (get-static-paths routes)]
+  (filter #(not= nil %) (concat params static-paths))))
+
+(defn find-url [routes name params path]
+  (let [path-found (= name (:.name routes))]
+    (if path-found
+      (if (= "" path) "/" path)
+      (first-not-nil (map #(let [[next-path next-params next-routes] (cond
+                                                                       (string? %) [% params (get routes %)]
+                                                                       (keyword? %) (if (map? params)
+                                                                                      [(get params %) params (if (get params %)
+                                                                                                               (get routes [%])
+                                                                                                               nil)]
+                                                                                      [(first params) (rest params) (get routes [%])]))]
+                             (find-url (if (var? next-routes)
+                                         (deref next-routes)
+                                         next-routes)
+                                       name
+                                       next-params
+                                       (str path "/" next-path)))
+                          (get-ways routes))))))
+
+(defn url
+  ([routes name]
+   (url routes name []))
+  ([routes name params]
+   (find-url routes name params "")))
