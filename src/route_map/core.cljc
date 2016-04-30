@@ -1,10 +1,6 @@
 (ns route-map.core
   (:require [clojure.string :as str]))
 
-(defn to-url
-  "build url from route and params"
-  [route & [params]])
-
 (defn pathify [path]
   (filterv #(not (str/blank? %)) (str/split path #"/")))
 

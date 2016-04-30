@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [route-map.core :as rm]))
 ;; TODO
-;; * url helper
 ;; * nested params (full naming or fallback to id)
 ;; * dsl
 ;; * meta-info
