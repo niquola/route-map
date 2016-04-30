@@ -83,21 +83,38 @@
         static-paths (get-static-paths routes)]
   (filter #(not= nil %) (concat params static-paths))))
 
-(defn- find-url [routes name params path]
-  (let [path-found (= name (:.name routes))]
+(defn- find-url [routes name auto-name params path]
+  (let [path-found (or (= name (:.name routes))
+                       (and (= name (keyword auto-name))
+                            (= 0 (count params))))]
     (if path-found
       (if (= "" path) "/" path)
-      (first-not-nil (map #(let [[next-path next-params next-routes] (cond
-                                                                       (string? %) [% params (get routes %)]
-                                                                       (keyword? %) (if (map? params)
-                                                                                      [(get params %) params (if (get params %)
-                                                                                                               (get routes [%])
-                                                                                                               nil)]
-                                                                                      [(first params) (rest params) (get routes [%])]))]
+      (first-not-nil (map #(let [[next-path
+                                  next-params
+                                  next-routes
+                                  next-auto-name] (cond
+                                                    (string? %) [%
+                                                                 params
+                                                                 (get routes %)
+                                                                 (if (= "" auto-name)
+                                                                   %
+                                                                   (str auto-name "-" %))]
+                                                    (keyword? %) (if (map? params)
+                                                                   [(get params %)
+                                                                    (dissoc params %)
+                                                                    (if (get params %)
+                                                                      (get routes [%])
+                                                                      nil)
+                                                                    auto-name]
+                                                                   [(first params)
+                                                                    (rest params)
+                                                                    (get routes [%])
+                                                                    auto-name]))]
                              (find-url (if (var? next-routes)
                                          (deref next-routes)
                                          next-routes)
                                        name
+                                       next-auto-name
                                        next-params
                                        (str path "/" next-path)))
                           (get-ways routes))))))
@@ -106,4 +123,4 @@
   ([routes name]
    (url routes name []))
   ([routes name params]
-   (find-url routes name params "")))
+   (find-url routes name "" params "")))

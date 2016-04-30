@@ -52,20 +52,15 @@
 (def routes
   {:.name :root
    GET    {:.desc "Root"}
-   "posts" {:.name :posts
-            :.roles   #{:author :admin}
+   "posts" {:.roles   #{:author :admin}
             :.filters [:user-required]
             GET       {:.desc "List posts"}
             POST      {:.desc "Create post"}
-            [:post-id] {:.name :post
-                        GET       {:.desc "Show post"}
+            [:post-id] {GET       {:.desc "Show post"}
                         POST      {:.desc "Update post"}
-                        "publish"  {:.name :post-publish
-                                    POST {:.desc "Publish post"}}
-                        "comments" {:.name :post-comments
-                                    GET  {:.desc "comments"}
-                                    [:comment-id] {:.name :post-comment
-                                                   GET {:.desc "show comment"}
+                        "publish"  {POST {:.desc "Publish post"}}
+                        "comments" {GET  {:.desc "comments"}
+                                    [:comment-id] {GET {:.desc "show comment"}
                                                    PUT {:.desc "update comment"}}}}}
    "sites" {[:site]  {[:path*] {GET {:.desc "Glob files"}}}}
    "users" #'user-routes})
@@ -158,10 +153,10 @@
   (is (= (rm/url routes :root) "/"))
   (is (= (rm/url routes :not-exists) nil))
   (is (= (rm/url routes :posts) "/posts"))
-  (is (= (rm/url routes :post [42]) "/posts/42"))
-  (is (= (rm/url routes :post {:post-id 42}) "/posts/42"))
-  (is (= (rm/url routes :post-comment [42 24]) "/posts/42/comments/24"))
-  (is (= (rm/url routes :post-comment {:comment-id 24 :post-id 42}) "/posts/42/comments/24"))
+  (is (= (rm/url routes :posts [42]) "/posts/42"))
+  (is (= (rm/url routes :posts {:post-id 42}) "/posts/42"))
+  (is (= (rm/url routes :posts-comments [42 24]) "/posts/42/comments/24"))
+  (is (= (rm/url routes :posts-comments {:comment-id 24 :post-id 42}) "/posts/42/comments/24"))
   (is (= (rm/url routes :active-users) "/users/active"))
   (is (= (rm/url routes :activate-user [111]) "/users/111/activate"))
   (is (= (rm/url routes :activate-user {:user-id 111}) "/users/111/activate")))
