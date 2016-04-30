@@ -47,16 +47,22 @@
                "activate" {POST {:.desc "Activate"}}}})
 
 (def routes
-  {GET    {:.desc "Root"}
-   "posts" {:.roles   #{:author :admin}
+  {GET    {:.name :root
+           :.desc "Root"}
+   "posts" {:.name :posts
+            :.roles   #{:author :admin}
             :.filters [:user-required]
             GET       {:.desc "List posts"}
             POST      {:.desc "Create post"}
-            [:post-id] {GET       {:.desc "Show post"}
+            [:post-id] {:.name :post
+                        GET       {:.desc "Show post"}
                         POST      {:.desc "Update post"}
-                        "publish"  {POST {:.desc "Publish post"}}
-                        "comments" {GET  {:.desc "comments"}
-                                    [:comment-id] {GET {:.desc "show comment"}
+                        "publish"  {:.name :post-publish
+                                    POST {:.desc "Publish post"}}
+                        "comments" {:.name :post-comments
+                                    GET  {:.desc "comments"}
+                                    [:comment-id] {:.name :post-comment
+                                                   GET {:.desc "show comment"}
                                                    PUT {:.desc "update comment"}}}}}
    "sites" {[:site]  {[:path*] {GET {:.desc "Glob files"}}}}
    "users" #'user-routes})
@@ -145,3 +151,11 @@
 (deftest not-map-test
   (is (nil? (rm/match "/test/unexisting" {"test" :test}))))
 
+(deftest url-test
+  (is (= (rm/url routes :root) "/"))
+  (is (= (rm/url routes :not-exists) nil))
+  (is (= (rm/url routes :posts) "/posts"))
+  (is (= (rm/url routes :post [42]) "/posts/42"))
+  (is (= (rm/url routes :post {:post-id 42}) "/posts/42"))
+  (is (= (rm/url routes :post-comment [42 24]) "/posts/42/comments/24"))
+  (is (= (rm/url routes :post-comment {:comment-id 24 :post-id 42}) "/posts/42/comments/24")))
