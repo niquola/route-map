@@ -1,10 +1,6 @@
 (ns route-map.core
   (:require [clojure.string :as str]))
 
-(defn to-url
-  "build url from route and params"
-  [route & [params]])
-
 (defn pathify [path]
   (filterv #(not (str/blank? %)) (str/split path #"/")))
 
@@ -68,3 +64,63 @@
     (if-let [match (match [meth uri] routes)]
       (h (assoc req :route-match match))
       (h req))))
+
+(defn- first-not-nil [coll]
+  (let [not-nils (filter #(not= nil %) coll)
+        all-nils (nil? not-nils)]
+    (if all-nils 
+      nil
+      (first not-nils))))
+
+(defn- get-static-paths [routes]
+  (map #(first %)
+       (filter #(let [[k _] %]
+                  (string? k))
+               routes)))
+
+(defn- get-ways [routes]
+  (let [params (first (get-param routes))
+        static-paths (get-static-paths routes)]
+  (filter #(not= nil %) (concat params static-paths))))
+
+(defn- find-url [routes name auto-name params path]
+  (let [path-found (or (= name (:.name routes))
+                       (and (= name (keyword auto-name))
+                            (= 0 (count params))))]
+    (if path-found
+      (if (= "" path) "/" path)
+      (first-not-nil (map #(let [[next-path
+                                  next-params
+                                  next-routes
+                                  next-auto-name] (cond
+                                                    (string? %) [%
+                                                                 params
+                                                                 (get routes %)
+                                                                 (if (= "" auto-name)
+                                                                   %
+                                                                   (str auto-name "-" %))]
+                                                    (keyword? %) (if (map? params)
+                                                                   [(get params %)
+                                                                    (dissoc params %)
+                                                                    (if (get params %)
+                                                                      (get routes [%])
+                                                                      nil)
+                                                                    auto-name]
+                                                                   [(first params)
+                                                                    (rest params)
+                                                                    (get routes [%])
+                                                                    auto-name]))]
+                             (find-url (if (var? next-routes)
+                                         (deref next-routes)
+                                         next-routes)
+                                       name
+                                       next-auto-name
+                                       next-params
+                                       (str path "/" next-path)))
+                          (get-ways routes))))))
+
+(defn url
+  ([routes name]
+   (url routes name []))
+  ([routes name params]
+   (find-url routes name "" params "")))

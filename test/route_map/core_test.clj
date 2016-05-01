@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [route-map.core :as rm]))
 ;; TODO
-;; * url helper
 ;; * nested params (full naming or fallback to id)
 ;; * dsl
 ;; * meta-info
@@ -37,17 +36,22 @@
 (def PUT :PUT)
 
 (def user-routes
-  {:.roles   #{:admin}
+  {:.name :users
+   :.roles   #{:admin}
    GET       {:.desc "List users"}
    POST      {:.desc "Create user" :.roles #{:admin}}
-   "active"   {GET {:.desc "Filtering users"}}
+   "active"   {:.name :active-users
+               GET {:.desc "Filtering users"}}
 
-   [:user-id] {GET       {:.desc "Show user"}
+   [:user-id] {:.name :user
+               GET       {:.desc "Show user"}
                POST      {:.desc "Update user"}
-               "activate" {POST {:.desc "Activate"}}}})
+               "activate" {:.name :activate-user
+                           POST {:.desc "Activate"}}}})
 
 (def routes
-  {GET    {:.desc "Root"}
+  {:.name :root
+   GET    {:.desc "Root"}
    "posts" {:.roles   #{:author :admin}
             :.filters [:user-required]
             GET       {:.desc "List posts"}
@@ -145,3 +149,14 @@
 (deftest not-map-test
   (is (nil? (rm/match "/test/unexisting" {"test" :test}))))
 
+(deftest url-test
+  (is (= (rm/url routes :root) "/"))
+  (is (= (rm/url routes :not-exists) nil))
+  (is (= (rm/url routes :posts) "/posts"))
+  (is (= (rm/url routes :posts [42]) "/posts/42"))
+  (is (= (rm/url routes :posts {:post-id 42}) "/posts/42"))
+  (is (= (rm/url routes :posts-comments [42 24]) "/posts/42/comments/24"))
+  (is (= (rm/url routes :posts-comments {:comment-id 24 :post-id 42}) "/posts/42/comments/24"))
+  (is (= (rm/url routes :active-users) "/users/active"))
+  (is (= (rm/url routes :activate-user [111]) "/users/111/activate"))
+  (is (= (rm/url routes :activate-user {:user-id 111}) "/users/111/activate")))
