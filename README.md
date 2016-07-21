@@ -91,6 +91,31 @@ Library just match routes and dispatch execution is up to you:
 
 [See example app](examples/mywebapp.clj)
 
+
+## Functional params
+
+To match on params details you could use `funcional-param`:
+
+```
+(defn match-ids [k]
+  (when (re-matches #".*,.*" k)
+    {:ids (str/split k #",")}))
+
+(def routes
+  {"user" {[:id] {:GET 'user}
+           [match-ids] {:GET 'specific}}})
+
+(match [:get "/user/1,2"]) => {:match 'specific :params {:ids ["1", "2"]}}
+(match [:get "/user/1"]) => {:match 'user :params {:id "1"}}
+
+```
+
+Function should accept part of path, eval any predicate on it and in case of 
+success return hash-map with params, otherwise nil.
+
+First matching function will be choosen, so your route could be undeterministic
+
+
 ## ClojureScript
 
 In ClojureScript scenario you do not have methods

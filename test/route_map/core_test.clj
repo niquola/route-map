@@ -1,6 +1,7 @@
 (ns route-map.core-test
   (:require [clojure.test :refer :all]
-            [route-map.core :as rm]))
+            [route-map.core :as rm]
+            [clojure.string :as str]))
 ;; TODO
 ;; * nested params (full naming or fallback to id)
 ;; * dsl
@@ -160,3 +161,24 @@
   (is (= (rm/url routes :active-users) "/users/active"))
   (is (= (rm/url routes :activate-user [111]) "/users/111/activate"))
   (is (= (rm/url routes :activate-user {:user-id 111}) "/users/111/activate")))
+
+(defn match-ids [k]
+  (when (re-matches #".*,.*" k)
+    {:ids (str/split k #",")}))
+
+(match-ids "1")
+(match-ids "1,2")
+
+(def fn-params-routes
+  {"user" {[:id] {:GET 'user}
+           [match-ids] {:GET 'specific}}})
+
+(defn fn-match [url]
+  (rm/match url fn-params-routes))
+
+(deftest frontend-routes-test
+  (is (= 'user (:match (fn-match [:get "/user/1"]))))
+  (is (= {:id "1"} (:params (fn-match [:get "/user/1"]))))
+
+  (is (= 'specific (:match (fn-match [:get "/user/1,2"]))))
+  (is (= {:ids ["1", "2"]} (:params (fn-match [:get "/user/1,2"])))))

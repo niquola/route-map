@@ -14,6 +14,22 @@
 (defn- get-param [node]
   (first (filter (fn [[k v]] (vector? k)) node)))
 
+(defn fn-param? [k]
+  (and (vector? k)
+       (let [f (first k)]
+         (and (fn? f) (not (keyword? f))))))
+
+(defn match-fn-params [node x]
+  (when (map? node)
+    (->> node
+         (filter (fn [[k v]] (fn-param? k)))
+         (reduce (fn  [acc [k v]]
+                   (if-let [params ((first k) x)]
+                     (conj acc [params v])
+                     acc))
+                 [])
+         first)))
+
 ;; TODO: add rs validation
 (defn -match [rs pth]
   (loop [acc (->Match [] {} nil) ;; {:parents [] :params {}}
@@ -32,17 +48,19 @@
       ;; attempt to get by get
       ;; deref vars
       (let [node (if (var? node) (deref node) node)]
-        (if-let [nnode (get node x)]
-         (recur (update-in acc [:parents] conj node) rpth nnode)
-         ;; looking for params
-         (when-let [[[k] nnode] (and (not (keyword? x))
-                                     (map? node)
-                                     (get-param node))]
-           (let [acc (update-in acc [:parents] conj node)]
-             ;; if glob then eat the path
-             (if (is-glob? k)
-               (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] nnode)
-               (recur (update-in acc [:params] assoc k x) rpth nnode)))))))))
+        (if-let [branch (get node x)]
+         (recur (update-in acc [:parents] conj node) rpth branch)
+         (if-let [[fparams branch] (match-fn-params node x)]
+           (recur (update-in acc [:params] merge fparams) rpth branch)
+           ;; looking for params
+           (when-let [[[k] branch] (and (not (keyword? x))
+                                       (map? node)
+                                       (get-param node))]
+             (let [acc (update-in acc [:parents] conj node)]
+               ;; if glob then eat the path
+               (if (is-glob? k)
+                 (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] branch)
+                 (recur (update-in acc [:params] assoc k x) rpth branch))))))))))
 
 (defn match [path routes]
   (if (vector? path)
