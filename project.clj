@@ -1,4 +1,4 @@
-(defproject route-map "0.0.3"
+(defproject route-map "0.0.4"
   :description "clojure routing library, where route is written as hash-map"
   :url "https://github.com/niquola/route-map"
   :license {:name "Eclipse Public License"
