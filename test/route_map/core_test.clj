@@ -182,3 +182,23 @@
 
   (is (= 'specific (:match (fn-match [:get "/user/1,2"]))))
   (is (= {:ids ["1", "2"]} (:params (fn-match [:get "/user/1,2"])))))
+
+
+
+(deftest no-method-glob-test
+  (let [routes {"page" {[:bits*] 'bits}}]
+    (is (= {:bits* ["test"]} (:params (rm/match "/page/test" routes))))
+    (is (= 'bits (:match (rm/match "/page/test" routes))))
+    (is (= {:bits* ["test" "a" "b" "c"]} (:params (rm/match "/page/test/a/b/c" routes)))))
+
+  (let [routes {"page" {[:bits*] {:GET 'get-bits
+                           :POST 'post-bits}}}]
+
+    (is (= {:bits* ["test"]} (:params (rm/match [:get "/page/test"] routes))))
+
+    (is (= 'get-bits (:match (rm/match [:get "/page/test"] routes))))
+
+    (is (= 'post-bits  (:match (rm/match [:post "/page/test"] routes))))
+
+    (is (= {:bits* ["test"]} (:params (rm/match [:post "/page/test"] routes))))))
+

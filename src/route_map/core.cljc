@@ -59,8 +59,11 @@
              (let [acc (update-in acc [:parents] conj node)]
                ;; if glob then eat the path
                (if (is-glob? k)
-                 (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] branch)
+                 (if (keyword? (last pth))
+                   (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] branch)
+                   (recur (update-in acc [:params] assoc k (into [] pth)) [] branch))
                  (recur (update-in acc [:params] assoc k x) rpth branch))))))))))
+
 
 (defn match [path routes]
   (if (vector? path)
