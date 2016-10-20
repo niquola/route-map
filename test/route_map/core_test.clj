@@ -195,6 +195,7 @@
                            :POST 'post-bits}}}]
 
     (is (= {:bits* ["test"]} (:params (rm/match [:get "/page/test"] routes))))
+    (is (= {:bits* ["test" "a" "b" "c"]} (:params (rm/match [:get "/page/test/a/b/c"] routes))))
 
     (is (= 'get-bits (:match (rm/match [:get "/page/test"] routes))))
 
