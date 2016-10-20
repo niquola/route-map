@@ -38,13 +38,12 @@
     ;; support var as node
     (if (empty? pth)
       ;; path end  find or not
-      (if node
+      (when node
         ;; found
         (if (and (map? node) (contains? node :.))
           (-> (update-in acc [:parents] conj node)
               (assoc :match (:. node)))
-          (assoc acc :match node))
-         nil)
+          (assoc acc :match node)))
       ;; attempt to get by get
       ;; deref vars
       (let [node (if (var? node) (deref node) node)]
