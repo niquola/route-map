@@ -4,12 +4,7 @@
 (defn pathify [path]
   (filterv #(not (str/blank? %)) (str/split path #"/")))
 
-(defrecord Match [parents params match])
-
-#?(:clj (defn is-glob? [k] (.endsWith (name k) "*")))
-#?(:cljs (defn is-glob? [k] (let [s (name k)]
-                              (= (.indexOf s "*")
-                                 (- (.-length s) 1)))))
+(defn is-glob? [k] (str/ends-with? (name k) "*"))
 
 (defn- get-param [node]
   (first (filter (fn [[k v]] (vector? k)) node)))
@@ -17,7 +12,7 @@
 (defn fn-param? [k]
   (and (vector? k)
        (let [f (first k)]
-         (and (fn? f) (not (keyword? f))))))
+         (and (not (keyword? f)) (fn? f) ))))
 
 (defn match-fn-params [node x]
   (when (map? node)
@@ -30,47 +25,39 @@
                  [])
          first)))
 
-;; TODO: add rs validation
-(defn -match [rs pth]
-  (loop [acc (->Match [] {} nil) ;; {:parents [] :params {}}
-         [x & rpth :as pth] pth
-         node rs]
-    ;; support var as node
-    (if (empty? pth)
-      ;; path end  find or not
-      (when node
-        ;; found
-        (if (and (map? node) (contains? node :.))
-          (-> (update-in acc [:parents] conj node)
-              (assoc :match (:. node)))
-          (assoc acc :match node)))
-      ;; attempt to get by get
-      ;; deref vars
-      (let [node (if (var? node) (deref node) node)]
-        (if-let [branch (get node x)]
-         (recur (update-in acc [:parents] conj node) rpth branch)
-         (if-let [[fparams branch] (match-fn-params node x)]
-           (recur (update-in acc [:params] merge fparams) rpth branch)
-           ;; looking for params
-           (when-let [[[k] branch] (and (not (keyword? x))
-                                       (map? node)
-                                       (get-param node))]
-             (let [acc (update-in acc [:parents] conj node)]
-               ;; if glob then eat the path
-               (if (is-glob? k)
-                 (if (keyword? (last pth))
-                   (recur (update-in acc [:params] assoc k (into [] (butlast pth))) [(last pth)] branch)
-                   (recur (update-in acc [:params] assoc k (into [] pth)) [] branch))
-                 (recur (update-in acc [:params] assoc k x) rpth branch))))))))))
+(defn -match [acc node [x & rpth :as pth] params parents wgt]
+  (if (empty? pth)
+    (if node
+      (if (and (map? node) (contains? node :.))
+        (conj acc {:parents (conj parents node) :match (:. node) :w wgt :params params})
+        (conj acc {:parents parents :match node :w wgt :params params}))
+      acc)
+    (let [node (if (var? node) (deref node) node)
+          acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents node) (+ wgt 10)) acc)
+          acc (if-let [[fparams branch] (match-fn-params node x)]
+                (-match acc branch rpth (merge params fparams) parents (+ wgt 10)) acc)
+          acc (if-let [[[k] branch] (and (not (keyword? x)) (map? node) (get-param node))]
+                (if (is-glob? k)
+                  (if (keyword? (last pth)) ;; false cljs :. case 
+                    (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents node) (inc wgt))
+                    (-match acc branch [] (assoc params k (into [] pth)) (conj parents node) (inc wgt)))
+                  (-match acc branch rpth (assoc params k x) (conj parents node) (+ wgt 2)))
+                acc)]
+      acc)))
 
-
-(defn match [path routes]
-  (if (vector? path)
-    (let [[meth url] path]
-      (-match routes
-              (conj (pathify url)
-                    (-> meth name str/upper-case keyword))))
-    (-match routes (pathify path))))
+(defn match
+  "path [:get \"/your/path\"] or just \"/your/path\"
+   return multiple matches"
+  [path routes]
+  (let [path (if (vector? path)
+               (let [[meth url] path]
+                 (conj (pathify url) (-> meth name str/upper-case keyword)))
+               (pathify path))
+        result (-match  [] routes path {} [] 0)]
+    (->> result
+         (sort-by :w)
+         reverse
+         first)))
 
 (defn wrap-route-map [h routes]
   "search appropriate route in routes

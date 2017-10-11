@@ -1,14 +1,8 @@
 (ns route-map.core-test
   (:require [clojure.test :refer :all]
             [route-map.core :as rm]
+            [matcho.core :as matcho]
             [clojure.string :as str]))
-;; TODO
-;; * nested params (full naming or fallback to id)
-;; * dsl
-;; * meta-info
-;; * handler
-;; * [:*]
-;; * [:param #"regexp"]
 
 (deftest test-pathify
   (is (rm/pathify "/") [])
@@ -16,6 +10,7 @@
   (is (rm/pathify "users/") ["users"])
   (is (rm/pathify "users") ["users"])
   (is (rm/pathify "users/1/show") ["users" "1" "show"]))
+
 
 ;; DSL example
 (defn resource [nm & [chld]]
@@ -88,23 +83,33 @@
   (is (= (rm/match [:get "some/unexistiong/route"] routes)
          nil))
 
-  (is (= (get-desc [:get "users/active"]) "Filtering users"))
-  (is (= (get-desc [:get "/"]) "Root"))
-  (is (= (get-desc [:post "users/5/activate"]) "Activate"))
+  (matcho/match
+   (rm/match [:get "users/active"] routes)
+   {:match {:.desc "Filtering users"}
+    :parents #(= 3 (count %))})
 
-  (is (= (get-params [:post "users/5/activate"]) {:user-id "5"}))
+  (matcho/match
+   (rm/match [:get "/users/active"] routes)
+   {:match {:.desc "Filtering users"}
+    :parents #(= 3 (count %))})
 
-  (is (=
-       (count
-         (:parents
-           (rm/match [:post "users/5/activate"] routes)))
-       4))
+  (matcho/match
+   (rm/match [:get "/"] routes)
+   {:match {:.desc "Root"}})
+
+  (matcho/match
+   (rm/match [:post "users/5/activate"] routes)
+   {:match {:.desc "Activate"}
+    :params {:user-id "5"}
+    :parents #(= 4 (count %))})
+
+
   (is (= (mapv :.filters (:parents (rm/match [:get "posts/1"] routes)))
          [nil [:user-required] nil]))
 
-  (is (= (get-params [:get "sites/blog/imgs/logo.png"]) {:site "blog"
-                                                         :path* ["imgs" "logo.png"]}))
-  )
+  (matcho/match (rm/match [:get "sites/blog/imgs/logo.png"] routes)
+                {:params {:site "blog"
+                          :path* ["imgs" "logo.png"]}}))
 
 (def routes-2
   {"metadata" {:GET {:fn '=metadata}}
@@ -116,7 +121,6 @@
 (deftest empty-root-test
   (is (= (rm/match [:get "/"] routes-2)
          nil)))
-
 
 (defn guard [x]
   (= "special" (get-in x [:param :params])))
@@ -140,15 +144,119 @@
 (defn f-match [url]
   (:match (rm/match url frontend-routes)))
 
-
 (deftest frontend-routes-test
   (is (= 'users-list-view (f-match "/admin/users")))
-  (is (= 'user-view (f-match "/admin/users/5")))
+
+  (matcho/match
+   (rm/match "/admin/users/5" frontend-routes)
+   {:match 'user-view
+    :params {:id "5"}})
+
   (is (= 'groups-list-view (f-match "/admin/groups")))
-  (is (= {:id "5"} (:params (rm/match "/admin/users/5" frontend-routes)))))
+  )
 
 (deftest not-map-test
   (is (nil? (rm/match "/test/unexisting" {"test" :test}))))
+
+
+(defn match-ids [k]
+  (when (re-matches #".*,.*" k)
+    {:ids (str/split k #",")}))
+
+(match-ids "1")
+
+(match-ids "1,2")
+
+(def fn-params-routes
+  {"user" {[:id] {:GET 'user}
+           [match-ids] {:GET 'specific}}})
+
+(deftest frontend-routes-test
+  (matcho/match
+   (rm/match [:get "/user/1"] fn-params-routes)
+   {:match 'user
+    :params {:id "1"}})
+
+  (matcho/match
+   (rm/match [:get "/user/1,2"] fn-params-routes)
+   {:match 'specific
+    :params {:ids ["1", "2"]}}))
+
+(deftest no-method-glob-test
+  (let [routes {"page" {[:bits*] 'bits}}]
+    (matcho/match
+     (rm/match "/page/test" routes)
+     {:params {:bits* ["test"]}
+      :match 'bits})
+
+    (matcho/match
+     (rm/match "/page/test/a/b/c" routes)
+     {:params {:bits* ["test" "a" "b" "c"]}
+      :match 'bits}))
+
+  (let [routes {"page" {[:bits*] {:GET 'get-bits
+                           :POST 'post-bits}}}]
+
+    (matcho/match
+     (rm/match [:get "/page/test"] routes)
+     {:params {:bits* ["test"]}})
+
+    (matcho/match
+     (rm/match [:get "/page/test/a/b/c"] routes)
+     {:params {:bits* ["test" "a" "b" "c"]}})
+
+    (matcho/match
+     (rm/match [:get "/page/test"] routes)
+     {:match 'get-bits})
+
+    (matcho/match
+     (rm/match [:post "/page/test"] routes)
+     {:match 'post-bits
+      :params {:bits* ["test"]}})))
+
+(def multi-rs
+  {[:resource-type] {:GET :list
+                     [:id] {:GET :find
+                            :PUT :update}}
+   "Appointment" {"$op" {:POST :op
+                         :GET  :op}
+                  [:id] {"$sub" {:GET :sub}}}})
+
+(deftest multi-routes
+
+  (matcho/match
+   (rm/match [:get "/Patient/1"] multi-rs)
+   {:match :find
+    :params {:resource-type "Patient"
+             :id "1"}})
+
+  (matcho/match
+   (rm/match [:get "/Appointment/1"] multi-rs)
+   {:match :find
+    :params {:resource-type "Appointment"
+             :id "1"}})
+
+  (matcho/match
+   (rm/match [:get "/Appointment/1"] multi-rs)
+   {:match :find
+    :params {:resource-type "Appointment"
+             :id "1"}})
+
+  (matcho/match
+   (rm/match [:get "/Appointment/$op"] multi-rs)
+   {:match :op})
+
+  (matcho/match
+   (rm/match [:get "/Appointment/5/$sub"] multi-rs)
+   {:match :sub}))
+
+;; TODO
+;; * nested params (full naming or fallback to id)
+;; * dsl
+;; * meta-info
+;; * handler
+;; * [:*]
+;; * [:param #"regexp"]
 
 (deftest url-test
   (is (= (rm/url routes :root) "/"))
@@ -161,45 +269,4 @@
   (is (= (rm/url routes :active-users) "/users/active"))
   (is (= (rm/url routes :activate-user [111]) "/users/111/activate"))
   (is (= (rm/url routes :activate-user {:user-id 111}) "/users/111/activate")))
-
-(defn match-ids [k]
-  (when (re-matches #".*,.*" k)
-    {:ids (str/split k #",")}))
-
-(match-ids "1")
-(match-ids "1,2")
-
-(def fn-params-routes
-  {"user" {[:id] {:GET 'user}
-           [match-ids] {:GET 'specific}}})
-
-(defn fn-match [url]
-  (rm/match url fn-params-routes))
-
-(deftest frontend-routes-test
-  (is (= 'user (:match (fn-match [:get "/user/1"]))))
-  (is (= {:id "1"} (:params (fn-match [:get "/user/1"]))))
-
-  (is (= 'specific (:match (fn-match [:get "/user/1,2"]))))
-  (is (= {:ids ["1", "2"]} (:params (fn-match [:get "/user/1,2"])))))
-
-
-
-(deftest no-method-glob-test
-  (let [routes {"page" {[:bits*] 'bits}}]
-    (is (= {:bits* ["test"]} (:params (rm/match "/page/test" routes))))
-    (is (= 'bits (:match (rm/match "/page/test" routes))))
-    (is (= {:bits* ["test" "a" "b" "c"]} (:params (rm/match "/page/test/a/b/c" routes)))))
-
-  (let [routes {"page" {[:bits*] {:GET 'get-bits
-                           :POST 'post-bits}}}]
-
-    (is (= {:bits* ["test"]} (:params (rm/match [:get "/page/test"] routes))))
-    (is (= {:bits* ["test" "a" "b" "c"]} (:params (rm/match [:get "/page/test/a/b/c"] routes))))
-
-    (is (= 'get-bits (:match (rm/match [:get "/page/test"] routes))))
-
-    (is (= 'post-bits  (:match (rm/match [:post "/page/test"] routes))))
-
-    (is (= {:bits* ["test"]} (:params (rm/match [:post "/page/test"] routes))))))
 

@@ -194,6 +194,8 @@ Integrate with Prismatic Schema for input validation:
 
 and generate swagger specification from routes.
 
+## Release notes
+
 ## License
 
 Copyright © 2014 niquola
