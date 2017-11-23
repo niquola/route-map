@@ -196,6 +196,11 @@ and generate swagger specification from routes.
 
 ## Release notes
 
+### 0.0.6 
+
+Match in different branches.
+
+
 ## License
 
 Copyright © 2014 niquola

@@ -218,11 +218,17 @@
   {[:resource-type] {:GET :list
                      [:id] {:GET :find
                             :PUT :update}}
+   "AidboxJob" {[:id] {"$run" {:POST :post}}}
+
    "Appointment" {"$op" {:POST :op
                          :GET  :op}
                   [:id] {"$sub" {:GET :sub}}}})
 
 (deftest multi-routes
+
+  (rm/match [:post "/AidboxJob/3/$run"] multi-rs)
+  (rm/match [:get "/AidboxJob"] multi-rs)
+
 
   (matcho/match
    (rm/match [:get "/Patient/1"] multi-rs)
@@ -243,12 +249,20 @@
              :id "1"}})
 
   (matcho/match
+   (rm/match [:put "/Appointment/1"] multi-rs)
+   {:match :update
+    :params {:resource-type "Appointment"
+             :id "1"}})
+
+  (matcho/match
    (rm/match [:get "/Appointment/$op"] multi-rs)
    {:match :op})
 
   (matcho/match
    (rm/match [:get "/Appointment/5/$sub"] multi-rs)
    {:match :sub}))
+
+
 
 ;; TODO
 ;; * nested params (full naming or fallback to id)
