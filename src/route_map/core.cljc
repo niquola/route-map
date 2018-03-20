@@ -29,19 +29,20 @@
   (if (empty? pth)
     (if node
       (if (and (map? node) (contains? node :.))
-        (conj acc {:parents (conj parents node) :match (:. node) :w wgt :params params})
+        (conj acc {:parents (conj parents (assoc node :params params)) :match (:. node) :w wgt :params params})
         (conj acc {:parents parents :match node :w wgt :params params}))
       acc)
     (let [node (if (var? node) (deref node) node)
-          acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents node) (+ wgt 10)) acc)
+          pnode (and (map? node) (assoc node :params params))
+          acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents pnode) (+ wgt 10)) acc)
           acc (if-let [[fparams branch] (match-fn-params node x)]
                 (-match acc branch rpth (merge params fparams) parents (+ wgt 10)) acc)
           acc (if-let [[[k] branch] (and (not (keyword? x)) (map? node) (get-param node))]
                 (if (is-glob? k)
                   (if (keyword? (last pth)) ;; false cljs :. case 
-                    (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents node) (inc wgt))
-                    (-match acc branch [] (assoc params k (into [] pth)) (conj parents node) (inc wgt)))
-                  (-match acc branch rpth (assoc params k x) (conj parents node) (+ wgt 2)))
+                    (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt))
+                    (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
+                  (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2)))
                 acc)]
       acc)))
 

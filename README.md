@@ -196,6 +196,10 @@ and generate swagger specification from routes.
 
 ## Release notes
 
+### 0.0.7 
+
+Collect params in parent nodes
+
 ### 0.0.6 
 
 Match in different branches.

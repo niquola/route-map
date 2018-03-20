@@ -284,3 +284,31 @@
   (is (= (rm/url routes :activate-user [111]) "/users/111/activate"))
   (is (= (rm/url routes :activate-user {:user-id 111}) "/users/111/activate")))
 
+
+(def test-parent-params
+  {:context   :ctx-1
+   GET        {:.desc "a"}
+   [:param-1] {:context :ctx-2
+               GET {:.desc "b"}
+               "item" {:context :ctx-3
+                       GET {:.desc "c"}
+                       [:param-3] {GET {:.desc "d"}}}
+               [:param-2] {:context :ctx-3
+                           GET {:.desc "c"}
+                           [:param-3] {GET {:.desc "d"}}}}})
+
+(deftest parent-params-test
+  (matcho/match
+   (rm/match [:get "/p1/p2/p3"] test-parent-params)
+   {:parents [{:params {}}
+              {:params {:param-1 "p1"}}
+              {:params {:param-1 "p1" :param-2 "p2"}}
+              {:params {:param-1 "p1" :param-2 "p2" :param-3 "p3"}}]})
+
+  (matcho/match
+   (rm/match [:get "/p1/item/p3"] test-parent-params)
+   {:parents [{:params {}}
+              {:params {:param-1 "p1"}}
+              {:params {:param-1 "p1"}}
+              {:params {:param-1 "p1" :param-3 "p3"}}]}) 
+  )
