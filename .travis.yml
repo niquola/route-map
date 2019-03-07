@@ -3,6 +3,5 @@ script: lein do clean, javac, test
 jdk:
   - oraclejdk8
   - oraclejdk11
-  - openjdk7
   - openjdk10
   - openjdk11
