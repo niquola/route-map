@@ -1,6 +1,8 @@
 language: clojure
 script: lein do clean, javac, test
 jdk:
-  - openjdk7
-  - oraclejdk7
   - oraclejdk8
+  - oraclejdk11
+  - openjdk7
+  - openjdk10
+  - openjdk11
