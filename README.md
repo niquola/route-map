@@ -224,12 +224,12 @@ and generate swagger specification from routes.
 
 ### 0.0.7 
 
-Collect params in parent nodes
+* Collect params in parent nodes
+* Params selection options: set and regex
 
 ### 0.0.6 
 
-Match in different branches.
-
+* Match in different branches.
 
 ## License
 
