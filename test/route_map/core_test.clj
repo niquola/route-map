@@ -310,5 +310,43 @@
    {:parents [{:params {}}
               {:params {:param-1 "p1"}}
               {:params {:param-1 "p1"}}
-              {:params {:param-1 "p1" :param-3 "p3"}}]}) 
+              {:params {:param-1 "p1" :param-3 "p3"}}]}))
+
+(def test-param-constraints
+  {[:entity #{"User" "Admin"}] {GET :a
+                                "sub" {GET :x}}
+   "Admin" {GET :z}
+   [:pattern #"^prefix_"] {:GET :pat}
+   [:default] {GET :b
+               "sub" {"subsub" {GET :y}}}})
+
+(deftest param-constraints-test
+  (matcho/match
+   (rm/match [:get "/User"] test-param-constraints)
+   {:match :a
+    :params {:entity "User"}})
+
+  (matcho/match
+   (rm/match [:get "/Admin"] test-param-constraints)
+   {:match :z})
+
+  (matcho/match
+   (rm/match [:get "/Admin/sub"] test-param-constraints)
+   {:match :x})
+
+  (matcho/match
+   (rm/match [:get "/Admin/sub/subsub"] test-param-constraints)
+   {:match :y})
+
+  (matcho/match
+   (rm/match [:get "/Patient"] test-param-constraints)
+   {:match :b
+    :params {:default "Patient"}})
+
+  (matcho/match
+   (dissoc (rm/match [:get "/prefix_something"] test-param-constraints) :parents)
+
+   {:match :pat
+    :params {:pattern "prefix_something"}})
+
   )

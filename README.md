@@ -92,11 +92,37 @@ Library just match routes and dispatch execution is up to you:
 [See example app](examples/mywebapp.clj)
 
 
+## Param options
+
+As second item in param declaration collection you can provide 
+set of possible path items as set or regexp to match. This matches 
+will have bigger priority than just parameters 
+
+```clojure
+
+(def routes
+  {
+    [:entity #{"Admin" "User"}] {:GET 'admin}
+    [:matched #"^prefix_"] {:GET 'pattern}
+    [:default] {:GET 'default}
+  })
+
+(match [:get "/Admin"]) 
+  => {:match 'admin :params {:entity "Admin"}}
+
+(match [:get "/prefix_something"]) 
+   => {:match 'pattern :params {:matched "prefix_something"}}
+
+(match [:get "/other"]) 
+   => {:match 'default :params {:default "other"}}
+
+```
+
 ## Functional params
 
 To match on params details you could use `funcional-param`:
 
-```
+```clojure
 (defn match-ids [k]
   (when (re-matches #".*,.*" k)
     {:ids (str/split k #",")}))

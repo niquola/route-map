@@ -6,6 +6,10 @@
 
 (defn is-glob? [k] (str/ends-with? (name k) "*"))
 
+(defn- get-params [node]
+  (when (map? node)
+    (filter (fn [[k v]] (vector? k)) node)))
+
 (defn- get-param [node]
   (first (filter (fn [[k v]] (vector? k)) node)))
 
@@ -35,20 +39,34 @@
     (let [node (if (var? node) (deref node) node)
           pnode (and (map? node) (assoc node :params params))
           acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents pnode) (+ wgt 10)) acc)
-          acc (if-let [[fparams branch] (match-fn-params node x)]
-                (-match acc branch rpth (merge params fparams) parents (+ wgt 10)) acc)
-          acc (if-let [[[k] branch] (and (not (keyword? x)) (map? node) (get-param node))]
-                (if (is-glob? k)
-                  (if (keyword? (last pth)) ;; false cljs :. case 
-                    (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt))
-                    (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
-                  (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2)))
-                acc)]
+          acc (if (keyword? x)
+                acc
+                (reduce (fn [acc [[k & [opts]] branch]]
+                          (if (fn? k)
+                            (if-let [[fparams branch] (match-fn-params node x)]
+                              (-match acc branch rpth (merge params fparams) parents (+ wgt 10))
+                              acc)
+                            (if (is-glob? k)
+                              (if (keyword? (last pth)) ;; false cljs :. case 
+                                (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt))
+                                (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
+                              (cond
+                                (nil? opts)
+                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2))
+
+                                (and (set? opts) (contains? opts x))
+                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5))
+
+                                (and (= (type opts) java.util.regex.Pattern)
+                                     (re-find opts x))
+                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4))
+
+                               :else acc)))
+                          ) acc (get-params node)))]
       acc)))
 
 (defn match
-  "path [:get \"/your/path\"] or just \"/your/path\"
-   return multiple matches"
+  "path [:get \"/your/path\"] or just \"/your/path\""
   [path routes]
   (let [path (if (vector? path)
                (let [[meth url] path]
@@ -57,8 +75,7 @@
         result (-match  [] routes path {} [] 0)]
     (->> result
          (sort-by :w)
-         reverse
-         first)))
+         last)))
 
 (defn wrap-route-map [h routes]
   "search appropriate route in routes
