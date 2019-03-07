@@ -313,10 +313,12 @@
               {:params {:param-1 "p1" :param-3 "p3"}}]}))
 
 (def test-param-constraints
-  {[:entity #{"User" "Admin"}] {GET :a
-                                "sub" {GET :x}}
+  {[:entity ] {:route-map/enum #{"User" "Admin"}
+               GET :a
+               "sub" {GET :x}}
    "Admin" {GET :z}
-   [:pattern #"^prefix_"] {:GET :pat}
+   [:pattern] {:route-map/regexp #"^prefix_"
+               :GET :pat}
    [:default] {GET :b
                "sub" {"subsub" {GET :y}}}})
 

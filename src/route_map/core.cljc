@@ -41,7 +41,7 @@
           acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents pnode) (+ wgt 10)) acc)
           acc (if (keyword? x)
                 acc
-                (reduce (fn [acc [[k & [opts]] branch]]
+                (reduce (fn [acc [[k] branch]]
                           (if (fn? k)
                             (if-let [[fparams branch] (match-fn-params node x)]
                               (-match acc branch rpth (merge params fparams) parents (+ wgt 10))
@@ -51,17 +51,17 @@
                                 (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt))
                                 (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
                               (cond
-                                (nil? opts)
-                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2))
-
-                                (and (set? opts) (contains? opts x))
+                                (when-let [opts (:route-map/enum branch)]
+                                  (and (set? opts) (contains? opts x)))
                                 (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5))
 
-                                (and (= (type opts) java.util.regex.Pattern)
-                                     (re-find opts x))
+                                (when-let [opts (:route-map/regexp branch)]
+                                  (and (= (type opts) java.util.regex.Pattern)
+                                       (re-find opts x)))
                                 (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4))
 
-                               :else acc)))
+                                :else
+                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2)))))
                           ) acc (get-params node)))]
       acc)))
 

@@ -101,11 +101,11 @@ will have bigger priority than just parameters
 ```clojure
 
 (def routes
-  {
-    [:entity #{"Admin" "User"}] {:GET 'admin}
-    [:matched #"^prefix_"] {:GET 'pattern}
-    [:default] {:GET 'default}
-  })
+ {[:entity] {:GET 'admin
+             :route-map/enum #{"Admin" "User"}}
+  [:matched ] {:GET 'pattern
+               :route-map/regexp #"^prefix_"}
+  [:default] {:GET 'default}})
 
 (match [:get "/Admin"]) 
   => {:match 'admin :params {:entity "Admin"}}
