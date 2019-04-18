@@ -322,6 +322,11 @@
    [:default] {GET :b
                "sub" {"subsub" {GET :y}}}})
 
+(def test-param-corner-case
+  {[:entity ] {:route-map/enum #{"User"}
+               GET :a}
+   "Admin" {GET :z}})
+
 (deftest param-constraints-test
   (matcho/match
    (rm/match [:get "/User"] test-param-constraints)
@@ -350,5 +355,21 @@
 
    {:match :pat
     :params {:pattern "prefix_something"}})
+
+  (testing "when no match with params"
+    (matcho/match
+     (dissoc (rm/match [:get "/Admin"] test-param-corner-case) :parents)
+
+     {:match :z})
+
+    (matcho/match
+     (dissoc (rm/match [:get "/User"] test-param-corner-case) :parents)
+
+     {:match :a})
+
+    (is (nil? (rm/match [:get "/Ups"] test-param-corner-case)))
+
+
+    )
 
   )

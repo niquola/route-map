@@ -52,13 +52,20 @@
                                 (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
                               (cond
                                 (when-let [opts (:route-map/enum branch)]
-                                  (and (set? opts) (contains? opts x)))
-                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5))
+                                  (set? opts))
+
+                                (let [opts (:route-map/enum branch)]
+                                  (if (contains? opts x)
+                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5))
+                                    acc))
 
                                 (when-let [opts (:route-map/regexp branch)]
-                                  (and (= (type opts) java.util.regex.Pattern)
-                                       (re-find opts x)))
-                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4))
+                                  (and (= (type opts) java.util.regex.Pattern)))
+
+                                (let [opts (:route-map/regexp branch)]
+                                  (if (re-find opts x)
+                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4))
+                                    acc))
 
                                 :else
                                 (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2)))))
