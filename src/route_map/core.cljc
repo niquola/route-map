@@ -29,6 +29,11 @@
                  [])
          first)))
 
+(defn regexp?
+  [x]
+  #?(:cljs (cljs.core/regexp? x)
+     :clj (instance? java.util.regex.Pattern x)))
+
 (defn -match [acc node [x & rpth :as pth] params parents wgt]
   (if (empty? pth)
     (if node
@@ -60,7 +65,7 @@
                                     acc))
 
                                 (when-let [opts (:route-map/regexp branch)]
-                                  (and (= (type opts) java.util.regex.Pattern)))
+                                  (and (regexp? opts)))
 
                                 (let [opts (:route-map/regexp branch)]
                                   (if (re-find opts x)
