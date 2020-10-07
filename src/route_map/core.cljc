@@ -29,10 +29,10 @@
                  [])
          first)))
 
-(defn regexp?
-  [x]
-  #?(:cljs (cljs.core/regexp? x)
-     :clj (instance? java.util.regex.Pattern x)))
+#?(:clj
+   (defn regexp?
+     [x]
+     (instance? java.util.regex.Pattern x)))
 
 (defn -match [acc node [x & rpth :as pth] params parents wgt]
   (if (empty? pth)
