@@ -1,5 +1,6 @@
 (ns route-map.core
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str])
+  (:refer-clojure :exclude [regexp?]))
 
 (defn pathify [path]
   (filterv #(not (str/blank? %)) (str/split path #"/")))
