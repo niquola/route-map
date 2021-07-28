@@ -101,6 +101,7 @@
    (rm/match [:post "users/5/activate"] routes)
    {:match {:.desc "Activate"}
     :params {:user-id "5"}
+    :path ["users" :user-id "activate" nil?]
     :parents #(= 4 (count %))})
 
 
@@ -108,7 +109,8 @@
          [nil [:user-required] nil]))
 
   (matcho/match (rm/match [:get "sites/blog/imgs/logo.png"] routes)
-                {:params {:site "blog"
+                {:path ["sites" :site :path* nil?]
+                 :params {:site "blog"
                           :path* ["imgs" "logo.png"]}}))
 
 (def routes-2
@@ -150,6 +152,7 @@
   (matcho/match
    (rm/match "/admin/users/5" frontend-routes)
    {:match 'user-view
+    :path ["admin" "users" :id nil?]
     :params {:id "5"}})
 
   (is (= 'groups-list-view (f-match "/admin/groups")))
@@ -175,44 +178,48 @@
   (matcho/match
    (rm/match [:get "/user/1"] fn-params-routes)
    {:match 'user
+    :path ["user" :id nil?]
     :params {:id "1"}})
 
   (matcho/match
    (rm/match [:get "/user/1,2"] fn-params-routes)
    {:match 'specific
+    :path ["user" :ids]
     :params {:ids ["1", "2"]}}))
 
 (deftest no-method-glob-test
-  (let [routes {"page" {[:bits*] 'bits}}]
-    (matcho/match
-     (rm/match "/page/test" routes)
-     {:params {:bits* ["test"]}
-      :match 'bits})
+  (def bits-routes {"page" {[:bits*] 'bits}})
+  (matcho/match
+   (rm/match "/page/test" bits-routes)
+   {:params {:bits* ["test"]}
+    :path ["page" :bits*]
+    :match 'bits})
 
-    (matcho/match
-     (rm/match "/page/test/a/b/c" routes)
-     {:params {:bits* ["test" "a" "b" "c"]}
-      :match 'bits}))
+  (matcho/match
+   (rm/match "/page/test/a/b/c" bits-routes)
+   {:params {:bits* ["test" "a" "b" "c"]}
+    :match 'bits})
 
-  (let [routes {"page" {[:bits*] {:GET 'get-bits
-                           :POST 'post-bits}}}]
+  (def bits-rotes-2 {"page" {[:bits*] {:GET 'get-bits
+                                       :POST 'post-bits}}})
 
-    (matcho/match
-     (rm/match [:get "/page/test"] routes)
-     {:params {:bits* ["test"]}})
+  (matcho/match
+   (rm/match [:get "/page/test"] bits-rotes-2)
+   {:path ["page" :bits*]
+    :params {:bits* ["test"]}})
 
-    (matcho/match
-     (rm/match [:get "/page/test/a/b/c"] routes)
-     {:params {:bits* ["test" "a" "b" "c"]}})
+  (matcho/match
+   (rm/match [:get "/page/test/a/b/c"] bits-rotes-2)
+   {:path ["page" :bits*]
+    :params {:bits* ["test" "a" "b" "c"]}})
 
-    (matcho/match
-     (rm/match [:get "/page/test"] routes)
-     {:match 'get-bits})
+  (matcho/match
+   (rm/match [:get "/page/test"] bits-rotes-2)
+   {:path ["page" :bits*]
+    :params {:bits* ["test"]}
+    :match 'get-bits})
 
-    (matcho/match
-     (rm/match [:post "/page/test"] routes)
-     {:match 'post-bits
-      :params {:bits* ["test"]}})))
+  )
 
 (def multi-rs
   {[:resource-type] {:GET :list
@@ -233,34 +240,42 @@
   (matcho/match
    (rm/match [:get "/Patient/1"] multi-rs)
    {:match :find
+    :path [:resource-type :id]
     :params {:resource-type "Patient"
              :id "1"}})
 
   (matcho/match
    (rm/match [:get "/Appointment/1"] multi-rs)
    {:match :find
+    :path [:resource-type :id]
     :params {:resource-type "Appointment"
              :id "1"}})
 
   (matcho/match
    (rm/match [:get "/Appointment/1"] multi-rs)
    {:match :find
+    :path [:resource-type :id]
     :params {:resource-type "Appointment"
              :id "1"}})
 
   (matcho/match
    (rm/match [:put "/Appointment/1"] multi-rs)
    {:match :update
+    :path [:resource-type :id]
     :params {:resource-type "Appointment"
              :id "1"}})
 
   (matcho/match
    (rm/match [:get "/Appointment/$op"] multi-rs)
-   {:match :op})
+   {:match :op
+    :path ["Appointment" "$op"]
+    })
 
   (matcho/match
    (rm/match [:get "/Appointment/5/$sub"] multi-rs)
-   {:match :sub}))
+   {:match :sub
+    :path ["Appointment" :id "$sub"]
+    }))
 
 
 

@@ -29,51 +29,53 @@
                  [])
          first)))
 
-(defn regexp?
+(defn regex?
   [x]
   #?(:cljs (cljs.core/regexp? x)
      :clj (instance? java.util.regex.Pattern x)))
 
-(defn -match [acc node [x & rpth :as pth] params parents wgt]
+(defn -match [acc node [x & rpth :as pth] params parents wgt tpth]
   (if (empty? pth)
     (if node
       (if (and (map? node) (contains? node :.))
-        (conj acc {:parents (conj parents (assoc node :params params)) :match (:. node) :w wgt :params params})
-        (conj acc {:parents parents :match node :w wgt :params params}))
+        (conj acc {:path tpth :parents (conj parents (assoc node :params params)) :match (:. node) :w wgt :params params})
+        (conj acc {:path tpth :parents parents :match node :w wgt :params params}))
       acc)
     (let [node (if (var? node) (deref node) node)
           pnode (and (map? node) (assoc node :params params))
-          acc (if-let [branch (get node x)] (-match acc branch rpth params (conj parents pnode) (+ wgt 10)) acc)
+          acc (if-let [branch (get node x)]
+                (-match acc branch rpth params (conj parents pnode) (+ wgt 10)
+                        (if (keyword? x)
+                          tpth
+                          (conj tpth x)))
+                acc)
           acc (if (keyword? x)
                 acc
                 (reduce (fn [acc [[k] branch]]
                           (if (fn? k)
                             (if-let [[fparams branch] (match-fn-params node x)]
-                              (-match acc branch rpth (merge params fparams) parents (+ wgt 10))
+                              (-match acc branch rpth (merge params fparams) parents (+ wgt 10) (conj tpth (first (keys fparams))))
                               acc)
                             (if (is-glob? k)
-                              (if (keyword? (last pth)) ;; false cljs :. case 
-                                (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt))
-                                (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt)))
+                              (if (keyword? (last pth)) ;; false cljs :. case
+                                (-match acc branch [(last pth)] (assoc params k (into [] (butlast pth)))  (conj parents pnode) (inc wgt) (conj tpth k))
+                                (-match acc branch [] (assoc params k (into [] pth)) (conj parents pnode) (inc wgt) (conj tpth k)))
                               (cond
                                 (when-let [opts (:route-map/enum branch)]
                                   (set? opts))
-
                                 (let [opts (:route-map/enum branch)]
                                   (if (contains? opts x)
-                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5))
+                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 5) (conj tpth k))
                                     acc))
 
                                 (when-let [opts (:route-map/regexp branch)]
-                                  (and (regexp? opts)))
-
+                                  (regex? opts))
                                 (let [opts (:route-map/regexp branch)]
                                   (if (re-find opts x)
-                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4))
+                                    (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 4) (conj tpth k))
                                     acc))
-
                                 :else
-                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2)))))
+                                (-match acc branch rpth (assoc params k x) (conj parents pnode) (+ wgt 2) (conj tpth k)))))
                           ) acc (get-params node)))]
       acc)))
 
@@ -84,7 +86,7 @@
                (let [[meth url] path]
                  (conj (pathify url) (-> meth name str/upper-case keyword)))
                (pathify path))
-        result (-match  [] routes path {} [] 0)]
+        result (-match  [] routes path {} [] 0 [])]
     (->> result
          (sort-by :w)
          last)))
