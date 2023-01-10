@@ -1,2 +1,2 @@
 {:paths ["src"]
- :deps { healthsamurai/matcho           {:mvn/version "0.3.9"}}}
+ :deps { healthsamurai/matcho           {:mvn/version "0.3.10"}}}
